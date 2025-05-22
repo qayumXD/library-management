@@ -11,14 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('authors', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('biography')->nullable();
+        Schema::table('authors', function (Blueprint $table) {
             $table->date('birth_date')->nullable();
             $table->date('death_date')->nullable();
-            $table->string('nationality')->nullable();
-            $table->timestamps();
+            $table->string('nationality', 100)->nullable();
         });
     }
 
@@ -27,6 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('authors');
+        Schema::table('authors', function (Blueprint $table) {
+            $table->dropColumn(['birth_date', 'death_date', 'nationality']);
+        });
     }
-}; 
+};

@@ -7,17 +7,25 @@ use App\Models\Borrow;
 use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class BorrowController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('role:admin')->except(['index', 'request', 'reserve', 'return']);
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $borrows = Borrow::with(['book', 'member'])
-            ->latest('borrowed_at')
-            ->paginate(10);
+        $borrows = auth()->user()->isAdmin()
+            ? Borrow::with(['book', 'user'])->latest()->paginate(10)
+            : Borrow::where('user_id', auth()->id())->with('book')->latest()->paginate(10);
+
         return view('borrows.index', compact('borrows'));
     }
 
@@ -173,16 +181,111 @@ class BorrowController extends Controller
      */
     public function return(Borrow $borrow)
     {
-        if ($borrow->returned_at) {
-            return redirect()->route('borrows.show', $borrow)
-                ->with('error', 'This book has already been returned.');
+        // Check if user is authorized to return this book
+        if (!auth()->user()->isAdmin() && $borrow->user_id !== auth()->id()) {
+            abort(403);
         }
 
+        // Update borrow record
         $borrow->update([
-            'returned_at' => now()
+            'returned_at' => now(),
         ]);
 
-        return redirect()->route('borrows.show', $borrow)
-            ->with('success', 'Book returned successfully.');
+        // Increase book quantity
+        $borrow->book->increment('quantity');
+
+        return back()->with('success', 'Book returned successfully.');
+    }
+
+    public function request(Book $book)
+    {
+        // Check if book is available
+        if ($book->quantity <= 0) {
+            return back()->with('error', 'Book is not available for borrowing.');
+        }
+
+        // Check if user already has a pending request for this book
+        $existingRequest = Borrow::where('user_id', auth()->id())
+            ->where('book_id', $book->id)
+            ->whereNull('returned_at')
+            ->whereNull('approved_at')
+            ->first();
+
+        if ($existingRequest) {
+            return back()->with('error', 'You already have a pending request for this book.');
+        }
+
+        // Create borrow request
+        Borrow::create([
+            'user_id' => auth()->id(),
+            'book_id' => $book->id,
+            'requested_at' => now(),
+        ]);
+
+        return back()->with('success', 'Book borrow request submitted successfully.');
+    }
+
+    public function reserve(Book $book)
+    {
+        // Check if book is currently borrowed
+        $isBorrowed = Borrow::where('book_id', $book->id)
+            ->whereNull('returned_at')
+            ->exists();
+
+        if (!$isBorrowed) {
+            return back()->with('error', 'Book is available for borrowing. No need to reserve.');
+        }
+
+        // Check if user already has a pending reservation
+        $existingReservation = Borrow::where('user_id', auth()->id())
+            ->where('book_id', $book->id)
+            ->whereNull('returned_at')
+            ->whereNull('approved_at')
+            ->first();
+
+        if ($existingReservation) {
+            return back()->with('error', 'You already have a pending reservation for this book.');
+        }
+
+        // Create reservation
+        Borrow::create([
+            'user_id' => auth()->id(),
+            'book_id' => $book->id,
+            'requested_at' => now(),
+            'is_reservation' => true,
+        ]);
+
+        return back()->with('success', 'Book reservation submitted successfully.');
+    }
+
+    public function approve(Borrow $borrow)
+    {
+        $book = $borrow->book;
+
+        // Check if book is still available
+        if ($book->quantity <= 0) {
+            return back()->with('error', 'Book is no longer available.');
+        }
+
+        // Update borrow record
+        $borrow->update([
+            'approved_at' => now(),
+            'borrowed_at' => now(),
+            'due_date' => now()->addDays(14), // 2 weeks borrowing period
+        ]);
+
+        // Decrease book quantity
+        $book->decrement('quantity');
+
+        return back()->with('success', 'Borrow request approved successfully.');
+    }
+
+    public function reject(Borrow $borrow)
+    {
+        $borrow->update([
+            'rejected_at' => now(),
+        ]);
+
+        return back()->with('success', 'Borrow request rejected successfully.');
     }
 }

@@ -1,144 +1,89 @@
 # Library Management System
 
-A modern web application for managing library resources, built with Laravel and Tailwind CSS.
+A modern library management system built with Laravel and Tailwind CSS.
 
 ## Features
 
-- Book management (add, edit, delete, view)
-- Member management
-- Borrowing system
-- Category management
-- Author management
-- Dashboard with statistics
-- User authentication
-- Responsive design
+- User Authentication (Admin & Student roles)
+- Book Management
+- Author Management
+- Category Management
+- Borrowing System
+- Dashboard with Statistics
+- Responsive Design
 
 ## Requirements
 
-- PHP 8.1 or higher
+- PHP >= 8.2
 - Composer
-- MySQL 8.0 or higher
-- Node.js 16.x or higher
-- NPM (comes with Node.js)
-- Git
+- MySQL
+- Node.js & NPM
 
-## Installation Steps for Windows
+## Installation
 
-1. **Install Required Software**
-   - Install [XAMPP](https://www.apachefriends.org/download.html) (includes PHP and MySQL)
-   - Install [Composer](https://getcomposer.org/download/)
-   - Install [Node.js](https://nodejs.org/) (LTS version recommended)
-   - Install [Git](https://git-scm.com/download/win)
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/library-management.git
+cd library-management
+```
 
-2. **Clone the Repository**
-   ```bash
-   git clone https://github.com/qayumXD/library-management.git
-   cd library-management
-   ```
+2. Install PHP dependencies:
+```bash
+composer install
+```
 
-3. **Install PHP Dependencies**
-   ```bash
-   composer install
-   ```
+3. Install NPM dependencies:
+```bash
+npm install
+```
 
-4. **Install Node.js Dependencies**
-   ```bash
-   npm install
-   ```
+4. Create environment file:
+```bash
+cp .env.example .env
+```
 
-5. **Environment Setup**
-   - Copy `.env.example` to `.env`
-   ```bash
-   copy .env.example .env
-   ```
-   - Generate application key
-   ```bash
-   php artisan key:generate
-   ```
+5. Generate application key:
+```bash
+php artisan key:generate
+```
 
-6. **Database Configuration**
-   - Start XAMPP Control Panel
-   - Start Apache and MySQL services
-   - Open phpMyAdmin (http://localhost/phpmyadmin)
-   - Create a new database named `library_management`
-   - Update `.env` file with database credentials:
-   ```
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=library_management
-   DB_USERNAME=root
-   DB_PASSWORD=
-   ```
+6. Configure your database in .env file:
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=library_management
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+```
 
-7. **Run Database Migrations**
-   ```bash
-   php artisan migrate
-   ```
+7. Run migrations and seeders:
+```bash
+php artisan migrate:fresh --seed
+```
 
-8. **Build Assets**
-   ```bash
-   npm run build
-   ```
+8. Start the development server:
+```bash
+php artisan serve
+```
 
-9. **Start the Development Server**
-   ```bash
-   php artisan serve
-   ```
+9. In a separate terminal, start Vite:
+```bash
+npm run dev
+```
 
-10. **Access the Application**
-    - Open your browser and visit: http://localhost:8000
-    - Register a new account to get started
+## Default Users
 
-## Default Login Credentials
+After running the seeders, you can log in with these credentials:
 
-After running migrations, you can register a new account through the registration page.
+### Admin
+- Email: admin@library.com
+- Password: password
 
-## Troubleshooting
-
-1. **Port Already in Use**
-   - If port 8000 is already in use, you can specify a different port:
-   ```bash
-   php artisan serve --port=8001
-   ```
-
-2. **Permission Issues**
-   - Ensure the `storage` and `bootstrap/cache` directories are writable
-   ```bash
-   php artisan storage:link
-   ```
-
-3. **Database Connection Issues**
-   - Verify MySQL service is running in XAMPP
-   - Check database credentials in `.env` file
-   - Ensure database `library_management` exists
-
-4. **Composer Issues**
-   - If you encounter SSL certificate issues, run:
-   ```bash
-   composer config -g disable-tls true
-   ```
-
-## Development
-
-- Run development server with hot reload:
-  ```bash
-  npm run dev
-  ```
-
-- Watch for changes:
-  ```bash
-  npm run watch
-  ```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Student
+- Email: student@library.com
+- Password: password
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

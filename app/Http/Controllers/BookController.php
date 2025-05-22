@@ -9,13 +9,28 @@ use App\Models\Author;
 
 class BookController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('role:admin')->except(['available', 'show']);
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $books = Book::with(['category', 'authors'])->paginate(10);
+        $books = Book::with(['category', 'authors'])->latest()->paginate(10);
         return view('books.index', compact('books'));
+    }
+
+    public function available()
+    {
+        $books = Book::whereDoesntHave('borrows', function ($query) {
+            $query->whereNull('returned_at');
+        })->with(['category', 'authors'])->latest()->paginate(10);
+        
+        return view('books.available', compact('books'));
     }
 
     /**
@@ -35,38 +50,37 @@ class BookController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'isbn' => 'required|string|max:255|unique:books',
-            'description' => 'nullable|string',
-            'quantity' => 'required|integer|min:0',
+            'isbn' => 'required|string|max:13|unique:books',
+            'description' => 'required|string',
             'category_id' => 'required|exists:categories,id',
-            'publisher' => 'nullable|string|max:255',
-            'publication_year' => 'nullable|integer|min:1000|max:' . (date('Y') + 1),
-            'location' => 'nullable|string|max:255',
             'authors' => 'required|array',
             'authors.*' => 'exists:authors,id',
+            'quantity' => 'required|integer|min:1',
         ]);
 
         $book = Book::create($validated);
-        $book->authors()->attach($validated['authors']);
+        $book->authors()->attach($request->authors);
 
-        return redirect()->route('books.index')->with('success', 'Book created successfully.');
+        return redirect()->route('books.index')
+            ->with('success', 'Book created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Book $book)
     {
-        $book = Book::with(['category', 'authors', 'borrows'])->findOrFail($id);
+        $book->load(['category', 'authors', 'borrows' => function ($query) {
+            $query->whereNull('returned_at');
+        }]);
         return view('books.show', compact('book'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit($id)
+    public function edit(Book $book)
     {
-        $book = Book::findOrFail($id);
         $categories = Category::all();
         $authors = Author::all();
         return view('books.edit', compact('book', 'categories', 'authors'));
@@ -75,36 +89,32 @@ class BookController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Book $book)
     {
-        $book = Book::findOrFail($id);
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'isbn' => 'required|string|max:255|unique:books,isbn,' . $book->id,
-            'description' => 'nullable|string',
-            'quantity' => 'required|integer|min:0',
+            'isbn' => 'required|string|max:13|unique:books,isbn,' . $book->id,
+            'description' => 'required|string',
             'category_id' => 'required|exists:categories,id',
-            'publisher' => 'nullable|string|max:255',
-            'publication_year' => 'nullable|integer|min:1000|max:' . (date('Y') + 1),
-            'location' => 'nullable|string|max:255',
             'authors' => 'required|array',
             'authors.*' => 'exists:authors,id',
+            'quantity' => 'required|integer|min:1',
         ]);
 
         $book->update($validated);
-        $book->authors()->sync($validated['authors']);
+        $book->authors()->sync($request->authors);
 
-        return redirect()->route('books.index')->with('success', 'Book updated successfully.');
+        return redirect()->route('books.index')
+            ->with('success', 'Book updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Book $book)
     {
-        $book = Book::findOrFail($id);
-        $book->authors()->detach();
         $book->delete();
-        return redirect()->route('books.index')->with('success', 'Book deleted successfully.');
+        return redirect()->route('books.index')
+            ->with('success', 'Book deleted successfully.');
     }
 }

@@ -22,7 +22,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             LibrarySeeder::class,
-            UserSeeder::class,
         ]);
     }
 }
